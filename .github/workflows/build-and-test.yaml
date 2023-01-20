@@ -2,7 +2,8 @@ name: "Build and test"
 on:
   push:
     tags-ignore: ["*"] # tags run tagged-release workflow
-    branches: ["**"]
+    # TODO uncoment
+    # branches: ["**"]
 
 jobs:
   build:

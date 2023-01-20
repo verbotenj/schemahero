@@ -1,0 +1,56 @@
+name: "Multiple arch release"
+on:
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: verbotenj/schemahero
+
+jobs:
+  build-amd64:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Create meta data
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+            suffix=-amd64
+          tags: |
+            # Only version, no revision
+            type=match,pattern=v(.*)-(.*),group=1
+            # Semantic versioning from our tags
+            type=semver,pattern={{version}}
+            # branch
+            type=ref,event=branch
+            # semver
+            type=semver,pattern={{version}}
+
+      - name: build-push
+        uses: docker/build-push-action@v3
+        with:
+          context: deploy
+          file: Dockerfile.manager
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
